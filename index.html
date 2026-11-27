@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Марафон осознанности</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--bg:#fff5ec;--card:#fff;--text:#35213f;--muted:#735f7a;--accent:#d6336c;--on:#fff;--line:#f1d9e0;
+  --sun:#ffe8a3;--hero:#ffe3d3;--hero2:#ffdbea;--time:#ff8a3d;--mark:#12b5a5;--pause:#7048e8}
+/* тема берётся из Telegram или из настроек устройства */
+:root[data-theme=dark]{--bg:#1d1426;--card:#2a1f36;--text:#fbf0ff;--muted:#c3aecd;--accent:#ff6b9d;--on:#2b0a18;--line:#4a3859;
+  --sun:#4d3d12;--hero:#4a2638;--hero2:#38245a;--time:#ff9f5c;--mark:#3bd6c6;--pause:#b197fc}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,Roboto,sans-serif}
+main{max-width:480px;margin:0 auto;padding:16px 16px 96px}
+h1{font-size:20px;margin:0}
+h2{font-size:14px;color:var(--muted);margin:24px 0 8px;font-weight:600}
+.muted{color:var(--muted);font-size:14px}
+.card{background:var(--card);border-radius:16px;padding:14px;margin-bottom:8px}
+.hero{text-align:center;margin-top:12px}
+.ring{width:176px;height:176px;margin:4px auto;display:block}
+.ring circle{fill:none;stroke-width:12}
+.ring .base{stroke:var(--line)}
+.ring .val{stroke:var(--accent);stroke-linecap:round;transform:rotate(-90deg);transform-origin:center;transition:stroke-dashoffset .4s}
+.ring text{fill:var(--text);text-anchor:middle}
+.row{display:flex;align-items:center;gap:10px}
+.row .name{flex:1;min-width:0;overflow-wrap:anywhere}
+button,input,textarea,select{font:inherit;color:inherit}
+button{border:0;border-radius:12px;padding:10px 14px;min-height:44px;background:var(--accent);color:var(--on);cursor:pointer}
+button.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+button:disabled{opacity:.45}
+.chips.wrap{display:flex;flex-wrap:wrap}.chips.wrap button{padding:8px 12px}
+.chips button.off{background:transparent;color:var(--text);border:1px solid var(--line)}
+#taskCard p{margin:6px 0 10px}
+.done{box-shadow:inset 0 0 0 2px var(--accent)}
+input,textarea,select{width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+textarea{resize:vertical;min-height:72px}
+.wide{width:100%}
+.notice{border:1px solid var(--accent);font-size:14px}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;gap:8px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:var(--card);border-top:1px solid var(--line)}
+nav button{flex:1;background:transparent;color:var(--muted)}
+nav button.active{background:var(--accent);color:var(--on)}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;z-index:5}
+.sheet>div{background:var(--bg);width:100%;max-width:480px;max-height:90vh;overflow:auto;margin:0 auto;border-radius:20px 20px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
+.chips{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:12px 0}
+.chips button{padding:8px 0}
+.stack{display:grid;gap:8px}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.days button{padding:4px 0;background:var(--card);color:var(--text);font-size:13px;min-height:48px}
+.days button small{display:block;color:var(--muted)}
+.days button.some{box-shadow:inset 0 -5px 0 var(--accent)}
+.days button.full{background:var(--accent);color:var(--on)}
+.days button.full small{color:var(--on)}
+#status{position:fixed;left:50%;transform:translateX(-50%);bottom:82px;background:var(--text);color:var(--bg);padding:8px 14px;border-radius:20px;font-size:14px;z-index:9;width:max-content;max-width:90%}
+h1{color:var(--accent)}
+h2{color:var(--text);font-size:15px}
+.hero{background:linear-gradient(135deg,var(--hero),var(--hero2))}
+.hero .muted{color:var(--text)}
+.ring .base{stroke:var(--card)}
+.ring .val{stroke:url(#grad)}
+#taskCard{background:var(--sun)}
+#taskCard button.ghost{background:var(--card);border-color:var(--accent)}
+#pause{background:var(--pause);color:var(--card)}
+#timed .card{border-left:6px solid var(--time)}
+#marks .card{border-left:6px solid var(--mark)}
+#marks .card.done{box-shadow:inset 0 0 0 2px var(--mark)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Марафон осознанности</h1>
+  <div class="muted" id="date"></div>
+  <div class="card notice" id="notice" hidden></div>
+  <p id="loading" class="muted">Загружаю записи…</p>
+
+  <section id="today" hidden>
+    <div class="card hero">
+      <svg class="ring" viewBox="0 0 176 176" role="img" aria-label="Минуты практики за день">
+        <defs><linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" style="stop-color:var(--time)"/><stop offset="1" style="stop-color:var(--accent)"/>
+        </linearGradient></defs>
+        <circle class="base" cx="88" cy="88" r="76"/>
+        <circle class="val" id="arc" cx="88" cy="88" r="76"/>
+        <text id="mins" x="88" y="92" font-size="44" font-weight="700">0</text>
+        <text x="88" y="118" font-size="14">из 60 минут</text>
+      </svg>
+      <div class="muted" id="cheer"></div>
+    </div>
+    <div class="card" id="taskCard">
+      <b id="dayNo"></b><p id="taskText"></p>
+      <button id="taskBtn" type="button" class="wide"></button>
+    </div>
+    <button id="pause" type="button" class="wide">⏸ Пауза: что со мной сейчас?</button>
+    <div class="muted" id="pauseInfo"></div>
+    <h2>Практики на время</h2><div id="timed"></div>
+    <h2>Привычки на день</h2><div id="marks"></div>
+    <button class="ghost wide" id="add">+ Добавить практику или привычку</button>
+    <div class="muted">Изменить или удалить: кнопка ✎</div>
+    <h2>За что я благодарен сегодня?</h2>
+    <input class="g" maxlength="200" placeholder="1." aria-label="Благодарность 1">
+    <input class="g" maxlength="200" placeholder="2." aria-label="Благодарность 2">
+    <input class="g" maxlength="200" placeholder="3." aria-label="Благодарность 3">
+    <h2>Какой момент дня я прожил внимательно?</h2>
+    <textarea id="moment" maxlength="500" aria-label="Внимательный момент дня"></textarea>
+    <h2>Мой профессиональный рост: какой шаг я сделал сегодня?</h2>
+    <textarea id="work" maxlength="400" placeholder="Что узнал, попробовал или довёл до конца" aria-label="Шаг в профессиональном росте"></textarea>
+    <button class="ghost wide" id="share" type="button">Поделиться днём</button>
+  </section>
+
+  <section id="path" hidden>
+    <h2>Последние 28 дней</h2>
+    <div class="card" id="summary"></div>
+    <div class="days" id="days"></div>
+    <div class="muted" style="margin:8px 0">Нажми на день, чтобы увидеть записи.</div>
+    <div id="detail"></div>
+  </section>
+</main>
+<nav hidden id="nav">
+  <button id="tabToday" class="active">Сегодня</button>
+  <button id="tabPath">Мой путь</button>
+</nav>
+<div class="sheet" id="sheet" hidden><div id="sheetBody"></div></div>
+<div id="status" hidden role="status"></div>
+
+<script>
+(function () {
+  'use strict';
+  /* ===== НАСТРОЙКИ МАРАФОНА ===== */
+  var START = '';     // общая дата старта, например '2026-12-01'. Пусто: с первого открытия
+  var BOT_LINK = '';  // ссылка на бота, например 'https://t.me/имя_бота'
+  var TASKS = [
+    'Три раза за день остановись и сделай по пять спокойных вдохов.',
+    'Один приём пищи без телефона и экранов. Замечай вкус.',
+    '10 минут прогулки: чувствуй, как стопы касаются земли.',
+    'Умываясь, замечай температуру воды и ощущения на коже.',
+    'Назови пять вещей, которые видишь, четыре, которые ощущаешь, три звука, два запаха и один вкус.',
+    'Первые 15 минут после пробуждения проведи без телефона.',
+    'Итог недели: запиши, что ты стал замечать чаще.',
+    'Слушая собеседника, не перебивай и не готовь ответ заранее.',
+    'Трижды за день проверь тело: плечи, челюсть, живот. Отпусти лишнее напряжение.',
+    'Когда появится сильная эмоция, назови её про себя: «это тревога», «это злость».',
+    'Сделай одно привычное дело вдвое медленнее обычного.',
+    'Пять минут слушай звуки вокруг, не оценивая их.',
+    'Скажи кому-нибудь спасибо и объясни, за что.',
+    'Итог недели: какие состояния приходили чаще и что помогало?',
+    'Замечай мысль «надо» и спрашивай себя: чего я хочу сейчас?',
+    'Прежде чем открыть соцсети, сделай вдох и спроси: зачем я их открываю?',
+    'Понаблюдай за мыслями пять минут: замечай каждую и отпускай.',
+    'Заметь, когда ты себя критикуешь. Скажи себе то же, что сказал бы другу.',
+    'Побудь 10 минут без дел, музыки и экранов.',
+    'Сделай доброе дело и заметь, что чувствуешь после.',
+    'Напиши себе письмо: что изменилось за 21 день и что ты хочешь оставить.'
+  ];
+  var STATES = ['Спокойствие', 'Радость', 'Тревога', 'Усталость', 'Раздражение', 'Другое'];
+
+  var GOAL = 60, LIMIT = 4096;
+  var tg = window.Telegram && window.Telegram.WebApp;
+  var inTg = !!(tg && tg.initData);
+  var cloud = inTg && tg.isVersionAtLeast('6.9') ? tg.CloudStorage : null;
+  var dark = window.matchMedia('(prefers-color-scheme: dark)');
+  function applyTheme() {
+    var root = document.documentElement;
+    root.dataset.theme = (inTg && tg.colorScheme ? tg.colorScheme === 'dark' : dark.matches) ? 'dark' : 'light';
+    if (inTg && tg.isVersionAtLeast('6.1')) {
+      var bg = getComputedStyle(root).getPropertyValue('--bg').trim();
+      if (/^#[0-9a-f]{3}$/i.test(bg)) bg = bg.replace(/[0-9a-f]/gi, '$&$&');
+      if (tg.setBackgroundColor) tg.setBackgroundColor(bg);
+      if (tg.setHeaderColor) tg.setHeaderColor(bg);
+    }
+  }
+  applyTheme();
+  if (dark.addEventListener) dark.addEventListener('change', applyTheme);
+  if (inTg) { if (tg.onEvent) tg.onEvent('themeChanged', applyTheme); tg.ready(); tg.expand(); }
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function btn(text, cls, fn) { var b = el('button', cls, text); b.type = 'button'; b.onclick = fn; return b; }
+
+  var statusTimer;
+  function say(text, sticky) {
+    $('status').textContent = text; $('status').hidden = false;
+    clearTimeout(statusTimer);
+    if (!sticky) statusTimer = setTimeout(function () { $('status').hidden = true; }, 2000);
+  }
+
+  /* ---------- хранилище ---------- */
+  var memory = {}, persistent = true;
+  try { localStorage.setItem('mo_test', '1'); localStorage.removeItem('mo_test'); }
+  catch (e) { persistent = false; }
+
+  function call(fn) {
+    return new Promise(function (resolve, reject) {
+      var t = setTimeout(function () { reject(new Error('timeout')); }, 10000);
+      fn(function (err, res) { clearTimeout(t); if (err) reject(err); else resolve(res); });
+    });
+  }
+  function readMany(keys) {
+    if (cloud) return call(function (cb) { cloud.getItems(keys, cb); });
+    var out = {};
+    keys.forEach(function (k) {
+      out[k] = persistent ? (localStorage.getItem('mo_' + k) || '') : (memory[k] || '');
+    });
+    return Promise.resolve(out);
+  }
+  var queue = Promise.resolve();
+  function write(key, obj) {
+    var value = JSON.stringify(obj);
+    if (value.length > LIMIT) { say('Слишком длинная запись, сократи текст', true); return Promise.resolve(false); }
+    queue = queue.then(function () {
+      if (cloud) return call(function (cb) { cloud.setItem(key, value, cb); });
+      if (persistent) localStorage.setItem('mo_' + key, value); else memory[key] = value;
+    }).then(function () { say('Сохранено'); return true; })
+      .catch(function () { say('Не удалось сохранить. Проверь связь и измени запись ещё раз', true); return false; });
+    return queue;
+  }
+
+  /* ---------- данные ---------- */
+  var DEFAULTS = [
+    { id: 'med', n: 'Медитация', t: 'm' },
+    { id: 'walk', n: 'Медитация при ходьбе', t: 'm' },
+    { id: 'breath', n: 'Дыхание', t: 'm' },
+    { id: 'vit', n: 'Принять витамины', t: 'x' },
+    { id: 'water', n: 'Вода, стаканы', t: 'c', g: 8 }
+  ];
+  var habits, day, dayKey, start;
+  function iso(d) { return keyOf(d).slice(2).replace(/(\d{4})(\d\d)(\d\d)/, '$1-$2-$3'); }
+  function dayNumber(d) {
+    var a = start.split('-').map(Number);
+    return Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(a[0], a[1] - 1, a[2])) / 86400000) + 1;
+  }
+
+  function keyOf(d) {
+    return 'd_' + d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
+  }
+  function parseDay(raw) {
+    var d = raw ? JSON.parse(raw) : {};
+    return { v: d.v || {}, g: d.g || ['', '', ''], r: d.r || '', w: d.w || '', p: d.p || [], q: d.q || 0 };
+  }
+  function minutes(d) {
+    return habits.reduce(function (s, h) { return s + (h.t === 'm' ? (d.v[h.id] || 0) : 0); }, 0);
+  }
+  function saveDay() { return write(dayKey, day); }
+
+  function load() {
+    var k = keyOf(new Date());
+    return readMany(['habits', 'start', k]).then(function (r) {
+      start = START || (r.start ? JSON.parse(r.start) : '');
+      if (!start) { start = iso(new Date()); write('start', start); }
+      habits = r.habits ? JSON.parse(r.habits) : DEFAULTS.slice();
+      day = parseDay(r[k]); dayKey = k;
+      $('date').textContent = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+      fillTexts(); render();
+    });
+  }
+
+  /* ---------- экран «Сегодня» ---------- */
+  function fillTexts() {
+    document.querySelectorAll('.g').forEach(function (i, n) { i.value = day.g[n] || ''; });
+    $('moment').value = day.r; $('work').value = day.w;
+  }
+  function render() {
+    var total = minutes(day), len = 2 * Math.PI * 76;
+    $('arc').style.strokeDasharray = len;
+    $('arc').style.strokeDashoffset = len * (1 - Math.min(total / GOAL, 1));
+    $('arc').style.opacity = total ? 1 : 0;
+    $('mins').textContent = total;
+    $('cheer').textContent = total >= GOAL ? 'Час внимания к себе набран 🌿'
+      : total ? 'Осталось ' + (GOAL - total) + ' мин. Каждая минута считается' : 'Начни с малого: даже 5 минут подходят';
+    renderTask();
+    var last = day.p[day.p.length - 1];
+    $('pauseInfo').textContent = last ? 'Пауз сегодня: ' + day.p.length + '. Последняя: ' + pauseLine(last) : '';
+    $('timed').textContent = ''; $('marks').textContent = '';
+    habits.filter(function (h) { return !h.off; }).forEach(function (h) {
+      var val = day.v[h.id] || 0;
+      var full = h.t === 'x' ? val > 0 : h.t === 'c' ? val >= h.g : false;
+      var card = el('div', 'card row' + (full ? ' done' : ''));
+      var name = el('div', 'name', h.n);
+      name.appendChild(el('div', 'muted', h.t === 'm' ? val + ' мин сегодня' : h.t === 'c' ? val + ' из ' + h.g : val ? 'Сделано' : 'Ещё не отмечено'));
+      name.onclick = function () { if (h.t === 'm') habitSheet(h); else editSheet(h); };
+      card.appendChild(name);
+      if (h.t === 'm') card.appendChild(btn('Отметить', '', function () { habitSheet(h); }));
+      if (h.t === 'x') card.appendChild(btn(val ? '✓' : 'Готово', val ? '' : 'ghost', function () { change(h, val ? -1 : 1); }));
+      if (h.t === 'c') {
+        var minus = btn('−', 'ghost', function () { change(h, -1); }); minus.disabled = !val;
+        minus.setAttribute('aria-label', 'Убрать один'); card.appendChild(minus);
+        var plus = btn('+1', '', function () { change(h, 1); }); card.appendChild(plus);
+      }
+      var edit = btn('✎', 'ghost', function () { editSheet(h); });
+      edit.setAttribute('aria-label', 'Изменить: ' + h.n); card.appendChild(edit);
+      (h.t === 'm' ? $('timed') : $('marks')).appendChild(card);
+    });
+  }
+  function change(h, delta) {
+    ensureToday().then(function () {
+      var next = Math.max(0, Math.min((day.v[h.id] || 0) + delta, h.t === 'm' ? 1440 : h.t === 'x' ? 1 : 999));
+      if (next) day.v[h.id] = next; else delete day.v[h.id];
+      render(); saveDay();
+    });
+  }
+
+  /* ---------- задание дня ---------- */
+  function renderTask() {
+    var n = dayNumber(new Date()), active = n >= 1 && n <= TASKS.length;
+    $('dayNo').textContent = active ? 'День ' + n + ' из ' + TASKS.length : n < 1 ? 'Марафон скоро начнётся' : 'Марафон пройден 🌿';
+    $('taskText').textContent = active ? TASKS[n - 1]
+      : n < 1 ? 'Старт: ' + new Date(start + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
+      : 'Продолжай практики, которые тебе помогли.';
+    $('taskBtn').hidden = !active;
+    $('taskBtn').textContent = day.q ? '✓ Задание выполнено' : 'Отметить задание';
+    $('taskBtn').className = day.q ? 'wide' : 'wide ghost';
+  }
+  $('taskBtn').onclick = function () {
+    ensureToday().then(function () { day.q = day.q ? 0 : 1; render(); saveDay(); });
+  };
+
+  /* ---------- пауза ---------- */
+  function pauseLine(p) {
+    return p.t + ' ' + STATES[p.s].toLowerCase() + ', сила ' + p.k + ' из 5' +
+      (p.b ? '. Тело: ' + p.b : '') + (p.m ? '. Мысли: ' + p.m : '');
+  }
+  function choice(items, onPick) {
+    var box = el('div', 'chips wrap');
+    items.forEach(function (text, i) {
+      var b = btn(text, 'off', function () {
+        Array.prototype.forEach.call(box.children, function (c) { c.className = 'off'; c.setAttribute('aria-pressed', 'false'); });
+        b.className = ''; b.setAttribute('aria-pressed', 'true'); onPick(i);
+      });
+      box.appendChild(b);
+    });
+    return box;
+  }
+  var pauseTimer;
+  $('pause').onclick = function () {
+    var body = openSheet('Пауза'), state = -1, power = 0;
+    body.appendChild(el('p', 'muted', 'Остановись. Ничего не нужно менять, просто заметь.'));
+    var timer = btn('Минута тишины', 'ghost wide', function () {
+      var end = Date.now() + 60000; timer.disabled = true;
+      function tick() {
+        var left = Math.ceil((end - Date.now()) / 1000);
+        if (left > 0) timer.textContent = 'Дыши спокойно: ' + left + ' с';
+        else { clearInterval(pauseTimer); timer.textContent = 'Минута прошла'; }
+      }
+      tick(); pauseTimer = setInterval(tick, 500);
+    });
+    body.appendChild(timer);
+    body.appendChild(el('h2', '', 'Что я чувствую?'));
+    body.appendChild(choice(STATES, function (i) { state = i; }));
+    body.appendChild(el('h2', '', 'Насколько сильно?'));
+    body.appendChild(choice(['1', '2', '3', '4', '5'], function (i) { power = i + 1; }));
+    var feel = el('input'); feel.maxLength = 80; feel.placeholder = 'Что в теле?'; feel.setAttribute('aria-label', 'Что в теле');
+    var mind = el('input'); mind.maxLength = 80; mind.placeholder = 'О чём думаю?'; mind.setAttribute('aria-label', 'О чём думаю');
+    body.appendChild(feel); body.appendChild(mind);
+    body.appendChild(btn('Сохранить паузу', 'wide', function () {
+      if (state < 0 || !power) { say('Выбери состояние и силу от 1 до 5'); return; }
+      ensureToday().then(function () {
+        var p = { t: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }), s: state, k: power, b: feel.value.trim(), m: mind.value.trim() };
+        var next = day.p.concat(p);
+        /* запас под благодарности и внимательный момент */
+        if (next.length > 10 || JSON.stringify(next).length > 1800) { say('На сегодня записано достаточно пауз'); return; }
+        day.p = next; closeSheet(); render(); saveDay();
+      });
+    }));
+  };
+
+  /* ---------- поделиться ---------- */
+  $('share').onclick = function () {
+    ensureToday().then(function () {
+      var body = openSheet('Поделиться днём'), n = dayNumber(new Date());
+      body.appendChild(el('p', 'muted', 'Отправится только то, что ты видишь ниже. Личные записи не добавляются.'));
+      var text = el('textarea'); text.maxLength = 500; text.setAttribute('aria-label', 'Сообщение для чата');
+      text.value = (n >= 1 && n <= TASKS.length ? 'День ' + n + ' из ' + TASKS.length + '. ' : '') +
+        'Практика: ' + minutes(day) + ' из ' + GOAL + ' мин.' + (day.q ? ' Задание выполнено.' : '') + '\nМоё наблюдение: ';
+      body.appendChild(text);
+      body.appendChild(btn(inTg && BOT_LINK ? 'Выбрать чат' : 'Скопировать текст', 'wide', function () {
+        if (inTg && BOT_LINK) {
+          tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(BOT_LINK) + '&text=' + encodeURIComponent(text.value));
+          closeSheet(); return;
+        }
+        var manual = function () { text.select(); say('Выделил текст, скопируй его вручную'); };
+        if (!navigator.clipboard) return manual();
+        navigator.clipboard.writeText(text.value).then(function () { say('Скопировано. Вставь в чат'); }, manual);
+      }));
+    });
+  };
+
+  /* ---------- нижние панели ---------- */
+  function openSheet(title) {
+    clearInterval(pauseTimer);
+    var body = $('sheetBody'); body.textContent = '';
+    var head = el('div', 'row'); head.appendChild(el('h1', 'name', title));
+    head.appendChild(btn('✕', 'ghost', closeSheet)); body.appendChild(head);
+    $('sheet').hidden = false; return body;
+  }
+  function closeSheet() { clearInterval(pauseTimer); $('sheet').hidden = true; }
+  $('sheet').onclick = function (e) { if (e.target === $('sheet')) closeSheet(); };
+
+  function habitSheet(h) {
+    var body = openSheet(h.n);
+    if (h.t === 'm') {
+      body.appendChild(el('p', 'muted', 'Сколько минут ты занимался?'));
+      var chips = el('div', 'chips');
+      [5, 7, 10, 15, 20].forEach(function (m) {
+        chips.appendChild(btn(String(m), '', function () { change(h, m); closeSheet(); }));
+      });
+      body.appendChild(chips);
+      var input = el('input'); input.type = 'number'; input.inputMode = 'numeric'; input.min = 1; input.max = 600;
+      input.placeholder = 'Другое число минут'; body.appendChild(input);
+      var own = function (sign) {
+        var m = Number(input.value);
+        if (!Number.isInteger(m) || m < 1 || m > 600) { say('Введи целое число от 1 до 600'); return; }
+        change(h, sign * m); closeSheet();
+      };
+      var actions = el('div', 'stack');
+      actions.appendChild(btn('Добавить', '', function () { own(1); }));
+      actions.appendChild(btn('Убрать минуты (если ошибся)', 'ghost', function () { own(-1); }));
+      body.appendChild(actions);
+    }
+  }
+
+  function editSheet(h) {
+    var body = openSheet('Изменить');
+    var name = el('input'); name.maxLength = 40; name.value = h.n; name.setAttribute('aria-label', 'Название');
+    body.appendChild(name);
+    var goal;
+    if (h.t === 'c') {
+      body.appendChild(el('div', 'muted', 'Сколько раз в день?'));
+      goal = el('input'); goal.type = 'number'; goal.inputMode = 'numeric'; goal.value = h.g;
+      goal.setAttribute('aria-label', 'Цель в день'); body.appendChild(goal);
+    }
+    function store(changes) {
+      var next = habits.map(function (x) { return x.id === h.id ? Object.assign({}, x, changes) : x; });
+      if (JSON.stringify(next).length > LIMIT) { say('Список слишком длинный, сократи названия'); return; }
+      habits = next; write('habits', habits); closeSheet(); render();
+    }
+    body.appendChild(btn('Сохранить', 'wide', function () {
+      var changes = { n: name.value.trim() };
+      if (!changes.n) { say('Напиши название'); return; }
+      if (goal) {
+        changes.g = Number(goal.value);
+        if (!Number.isInteger(changes.g) || changes.g < 1 || changes.g > 999) { say('Укажи цель от 1 до 999'); return; }
+      }
+      store(changes);
+    }));
+    var sure = false;
+    var del = btn('Удалить', 'ghost wide', function () {
+      if (!sure) { sure = true; del.textContent = 'Нажми ещё раз, чтобы удалить'; return; }
+      store({ off: 1 });
+    });
+    del.style.marginTop = '20px'; body.appendChild(del);
+    body.appendChild(el('p', 'muted', 'Прошлые записи останутся в истории. Чтобы сменить тип, удали и добавь заново.'));
+  }
+
+  $('add').onclick = function () {
+    var body = openSheet('Новая привычка');
+    var name = el('input'); name.maxLength = 40; name.placeholder = 'Например, читать перед сном';
+    var type = el('select');
+    [['m', 'Считать минуты (идёт в шкалу 60)'], ['x', 'Отметка «сделано»'], ['c', 'Счётчик раз']].forEach(function (o) {
+      var op = el('option', '', o[1]); op.value = o[0]; type.appendChild(op);
+    });
+    var goal = el('input'); goal.type = 'number'; goal.inputMode = 'numeric'; goal.placeholder = 'Сколько раз в день?'; goal.hidden = true;
+    type.onchange = function () { goal.hidden = type.value !== 'c'; };
+    name.setAttribute('aria-label', 'Название'); type.setAttribute('aria-label', 'Тип привычки');
+    [name, type, goal].forEach(function (x) { body.appendChild(x); });
+    body.appendChild(btn('Сохранить', 'wide', function () {
+      var n = name.value.trim(), g = Number(goal.value);
+      if (!n) { say('Напиши название'); return; }
+      if (type.value === 'c' && (!Number.isInteger(g) || g < 1 || g > 999)) { say('Укажи цель от 1 до 999'); return; }
+      var h = { id: 'h' + Date.now().toString(36), n: n, t: type.value };
+      if (h.t === 'c') h.g = g;
+      var next = habits.concat(h);
+      if (JSON.stringify(next).length > LIMIT) { say('Достигнут предел числа привычек'); return; }
+      habits = next; write('habits', habits); closeSheet(); render();
+    }));
+  };
+
+  /* ---------- тексты ---------- */
+  var textTimer = null;
+  function flush() {
+    if (textTimer) { clearTimeout(textTimer); textTimer = null; saveDay(); }
+  }
+  function onText() {
+    day.g = Array.prototype.map.call(document.querySelectorAll('.g'), function (i) { return i.value; });
+    day.r = $('moment').value; day.w = $('work').value;
+    clearTimeout(textTimer); textTimer = setTimeout(flush, 700);
+  }
+  document.querySelectorAll('.g, #moment, #work').forEach(function (i) { i.oninput = onText; i.onblur = flush; });
+
+  /* смена даты, пока приложение открыто */
+  function ensureToday() {
+    if (keyOf(new Date()) === dayKey) return Promise.resolve();
+    flush();
+    return queue.then(load).catch(function (e) { fail(); throw e; });
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (!dayKey) return;
+    if (document.hidden) flush(); else ensureToday();
+  });
+  setInterval(function () { if (dayKey && !document.hidden) ensureToday(); }, 60000);
+
+  /* ---------- экран «Мой путь» ---------- */
+  function showPath() {
+    var dates = [];
+    for (var i = 27; i >= 0; i--) { var d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - i); dates.push(d); }
+    $('days').textContent = ''; $('detail').textContent = ''; $('summary').textContent = 'Загружаю…';
+    queue.then(function () { return readMany(dates.map(keyOf)); }).then(function (r) {
+      var active = 0, week = 0;
+      $('days').textContent = '';
+      dates.forEach(function (d, n) {
+        var rec = parseDay(r[keyOf(d)]), m = minutes(rec);
+        var any = rec.q || rec.p.length || Object.keys(rec.v).length || rec.r.trim() || rec.w.trim() || rec.g.join('').trim();
+        if (any) active++;
+        if (n >= 21) week += m;
+        var b = btn(String(d.getDate()), m >= GOAL ? 'full' : any ? 'some' : '', function () { detail(d, rec); });
+        b.appendChild(el('small', '', m ? m + 'м' : '·'));
+        $('days').appendChild(b);
+      });
+      $('summary').textContent = 'Дней с записями: ' + active + ' из 28. Минут за 7 дней: ' + week + '.';
+    }).catch(function () { $('summary').textContent = 'Не удалось загрузить историю. Открой вкладку ещё раз.'; });
+  }
+  function detail(d, rec) {
+    var box = el('div', 'card');
+    box.appendChild(el('b', '', d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })));
+    var lines = habits.filter(function (h) { return rec.v[h.id]; }).map(function (h) {
+      return h.n + ': ' + (h.t === 'm' ? rec.v[h.id] + ' мин' : h.t === 'c' ? rec.v[h.id] + ' из ' + h.g : 'сделано');
+    });
+    if (rec.q) lines.unshift('Задание дня выполнено');
+    rec.p.forEach(function (p) { lines.push('Пауза ' + pauseLine(p)); });
+    rec.g.forEach(function (t) { if (t.trim()) lines.push('Благодарю: ' + t); });
+    if (rec.r.trim()) lines.push('Внимательный момент: ' + rec.r);
+    if (rec.w.trim()) lines.push('Профессиональный рост: ' + rec.w);
+    (lines.length ? lines : ['Записей нет']).forEach(function (t) { box.appendChild(el('div', '', t)); });
+    $('detail').textContent = ''; $('detail').appendChild(box);
+    box.scrollIntoView({ block: 'nearest' });
+  }
+
+  function tab(path) {
+    flush();
+    $('today').hidden = path; $('path').hidden = !path;
+    $('tabToday').className = path ? '' : 'active'; $('tabPath').className = path ? 'active' : '';
+    window.scrollTo(0, 0);
+    if (path) showPath(); else ensureToday();
+  }
+  $('tabToday').onclick = function () { tab(false); };
+  $('tabPath').onclick = function () { tab(true); };
+
+  /* ---------- запуск ---------- */
+  /* если записи не прочитались, ввод закрыт, чтобы не затереть их пустыми */
+  function fail() {
+    $('today').hidden = $('path').hidden = $('nav').hidden = true; closeSheet(); dayKey = null;
+    $('loading').hidden = false;
+    $('loading').textContent = 'Не удалось загрузить записи. Закрой приложение и открой его снова.';
+  }
+  if (!cloud) {
+    $('notice').hidden = false;
+    $('notice').textContent = persistent
+      ? 'Пробный режим: записи хранятся только в этом браузере.'
+      : 'Пробный режим: записи пропадут после закрытия страницы.';
+  }
+  load().then(function () { $('loading').hidden = true; $('today').hidden = false; $('nav').hidden = false; }).catch(fail);
+})();
+</script>
+</body>
+</html>
